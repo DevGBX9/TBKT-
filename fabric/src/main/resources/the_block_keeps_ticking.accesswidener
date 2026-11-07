@@ -1,0 +1,26 @@
+accessWidener v2 official
+
+# ChunkLevel distance constants
+accessible field net/minecraft/server/level/ChunkLevel BLOCK_TICKING_LEVEL I
+accessible field net/minecraft/server/level/ChunkLevel ENTITY_TICKING_LEVEL I
+
+# Access a list of loaded chunks in a world
+accessible method net/minecraft/server/level/ChunkMap forEachBlockTickingChunk (Ljava/util/function/Consumer;)V
+
+# Growth checker for crops
+accessible method net/minecraft/world/level/block/CropBlock getGrowthSpeed (Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;)F
+
+# Bamboo growth helpers
+accessible method net/minecraft/world/level/block/BambooStalkBlock getHeightBelowUpToMax (Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;)I
+accessible method net/minecraft/world/level/block/BambooStalkBlock growBamboo (Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/util/RandomSource;I)V
+
+# Event-driven bamboo farm simulator: invoke vanilla block events (pistons)
+accessible method net/minecraft/world/level/block/state/BlockBehaviour triggerEvent (Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;II)Z
+accessible method net/minecraft/world/level/block/piston/PistonBaseBlock triggerEvent (Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;II)Z
+
+# Speleothem / Pointed dripstone
+accessible method net/minecraft/world/level/block/SpeleothemBlock findTip (Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/LevelAccessor;Lnet/minecraft/core/BlockPos;IZ)Lnet/minecraft/core/BlockPos;
+accessible method net/minecraft/world/level/block/SpeleothemBlock grow (Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/Direction;)V
+accessible method net/minecraft/world/level/block/SpeleothemBlock growStalagmiteBelow (Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;)V
+accessible method net/minecraft/world/level/block/SpeleothemBlock canTipGrow (Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/core/BlockPos;)Z
+accessible method net/minecraft/world/level/block/PointedDripstoneBlock findFillableCauldronBelowStalactiteTip (Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/material/Fluid;)Lnet/minecraft/core/BlockPos;

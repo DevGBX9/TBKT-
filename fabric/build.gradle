@@ -1,0 +1,151 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.fabricmc.fabric-loom'
+}
+
+base {
+    archivesName = "the-block-keeps-ticking-plus-${minecraft_version}"
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(java_version)
+    withSourcesJar()
+}
+
+repositories {
+    maven {
+        name = 'Xander Maven'
+        url = 'https://maven.isxander.dev/releases'
+    }
+    maven {
+        name = 'Terraformers'
+        url = 'https://maven.terraformersmc.com/'
+    }
+}
+
+dependencies {
+    minecraft("com.mojang:minecraft:${minecraft_version}")
+    mappings(loom.officialMojangMappings())
+    modImplementation("net.fabricmc:fabric-loader:${fabric_loader_version}")
+    modImplementation("net.fabricmc.fabric-api:fabric-api:${fabric_version}")
+    modCompileOnly("dev.isxander:yet-another-config-lib:${yacl_version_fabric}")
+    modCompileOnly("com.terraformersmc:modmenu:${modmenu_version}")
+    modLocalRuntime("dev.isxander:yet-another-config-lib:${yacl_version_fabric}")
+    modLocalRuntime("com.terraformersmc:modmenu:${modmenu_version}")
+}
+
+loom {
+    accessWidenerPath.set(file("src/main/resources/${mod_id}.accesswidener"))
+    runs {
+        client {
+            client()
+            setConfigName('Fabric Client')
+            ideConfigGenerated(true)
+            runDir('runs/client')
+        }
+        server {
+            server()
+            setConfigName('Fabric Server')
+            ideConfigGenerated(true)
+            runDir('runs/server')
+            programArg 'nogui'
+        }
+        selftest {
+            server()
+            setConfigName('Fabric Selftest')
+            ideConfigGenerated(true)
+            runDir('runs/selftest')
+            property 'tbkt.selftest', 'true'
+            property 'java.awt.headless', 'true'
+            programArg 'nogui'
+        }
+    }
+}
+
+tasks.withType(Jar).configureEach {
+    from(rootProject.file('LICENSE')) {
+        rename { "${it}_${mod_name}" }
+    }
+}
+
+sourcesJar {
+    archiveFileName = "the-block-keeps-ticking-plus-${minecraft_version}-sources.jar"
+}
+
+jar {
+    archiveFileName = "the-block-keeps-ticking-plus-${minecraft_version}.jar"
+    manifest {
+        attributes([
+                'Specification-Title'   : mod_name,
+                'Specification-Vendor'  : mod_author,
+                'Specification-Version' : project.jar.archiveVersion,
+                'Implementation-Title'  : project.name,
+                'Implementation-Version': project.jar.archiveVersion,
+                'Implementation-Vendor' : mod_author,
+                'Built-On-Minecraft'    : minecraft_version
+        ])
+    }
+}
+
+processResources {
+    var expandProps = [
+            'version'                : version,
+            'group'                  : project.group,
+            'minecraft_version'      : minecraft_version,
+            'minecraft_version_range': minecraft_version_range,
+            'fabric_version'         : fabric_version,
+            'fabric_loader_version'  : fabric_loader_version,
+            'mod_name'               : mod_name,
+            'mod_author'             : mod_author,
+            'mod_id'                 : mod_id,
+            'fabric_mod_id'          : fabric_mod_id,
+            'license'                : license,
+            'description'            : project.findProperty('description') ?: '',
+            'credits'                : credits,
+            'java_version'           : java_version,
+            'yacl_version_fabric'    : yacl_version_fabric,
+            'modmenu_version'        : modmenu_version
+    ]
+
+    var jsonExpandProps = expandProps.collectEntries { key, value ->
+        [(key): value instanceof String ? value.replace('\n', '\\\\n') : value]
+    }
+
+    filesMatching(['pack.mcmeta', 'fabric.mod.json', '*.mixins.json']) {
+        expand jsonExpandProps
+    }
+
+    inputs.properties(expandProps)
+}
+
+tasks.register('prepareSelftestRun') {
+    doLast {
+        prepareTbktSelftestRunDir(file('runs/selftest'))
+    }
+}
+
+tasks.configureEach {
+    if (it.name == 'runSelftest') {
+        it.dependsOn 'prepareSelftestRun'
+    }
+}
+
+ext.prepareTbktSelftestRunDir = { File dir ->
+    dir.mkdirs()
+    project.delete(new File(dir, 'tbkt-selftest'))
+    new File(dir, 'eula.txt').text = 'eula=true\n'
+    project.copy {
+        from rootProject.file('scripts/selftest/server.properties')
+        into dir
+    }
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifactId base.archivesName.get()
+            from components.java
+        }
+    }
+}

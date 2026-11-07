@@ -1,0 +1,32 @@
+# eclipse
+bin
+*.launch
+.settings
+.metadata
+.classpath
+.project
+
+# idea
+out
+*.ipr
+*.iws
+*.iml
+.idea/*
+!.idea/scopes
+
+# gradle
+build
+.gradle
+
+# other
+eclipse
+run
+runs
+decomp
+*.DS_Store
+hs_err_*.log
+replay_*.log
+*.hprof
+*.jfr
+.vscode/settings.json
+.vscode/launch.json

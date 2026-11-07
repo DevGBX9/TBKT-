@@ -1,0 +1,167 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build, test, and package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: microsoft
+          java-version: '25'
+          check-latest: false
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Set up Gradle with cache
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          validate-wrappers: true
+          cache-read-only: false
+          add-job-summary: on-failure
+
+      - name: Print toolchain versions
+        run: |
+          java -version
+          ./gradlew --version
+
+      - name: Structure check (Fabric only, Minecraft 26.3)
+        run: |
+          set -euo pipefail
+          echo "Checking required files..."
+          for file in \
+            settings.gradle \
+            build.gradle \
+            gradle.properties \
+            gradlew \
+            fabric/build.gradle \
+            fabric/src/main/resources/fabric.mod.json \
+            fabric/src/main/resources/pack.mcmeta \
+            fabric/src/main/resources/the_block_keeps_ticking.accesswidener \
+            fabric/src/main/resources/the_block_keeps_ticking.mixins.json \
+            README.md \
+            DEBUG-GUIDE.md; do
+            test -f "$file" || { echo "::error::Missing required file: $file"; exit 1; }
+          done
+
+          echo "Checking that legacy loader modules are gone..."
+          for dir in common neoforge build-logic api-example; do
+            if [ -e "$dir" ]; then
+              echo "::error::Legacy directory must not exist: $dir"
+              exit 1
+            fi
+          done
+          if grep -RIn --include='*.gradle' --include='*.properties' --include='*.json' \
+              -E 'neoforge|net\.neoforged|neoForge' . ; then
+            echo "::error::NeoForge references found in build configuration"
+            exit 1
+          fi
+
+          echo "Checking settings/module wiring..."
+          grep -q "include('fabric')" settings.gradle
+          grep -q "minecraft_version=26.3" gradle.properties
+          grep -q "java_version=25" gradle.properties
+          grep -q 'the-block-keeps-ticking' gradle.properties
+          echo "Structure check passed."
+
+      - name: Run unit tests
+        run: ./gradlew :fabric:test --console=plain --stacktrace
+
+      - name: Compile main sources and resources
+        run: ./gradlew :fabric:compileJava :fabric:processResources --console=plain --stacktrace
+
+      - name: Build JAR
+        run: ./gradlew :fabric:build -x test --console=plain --stacktrace
+
+      - name: Run deterministic Fabric selftest (18 original + 13 Plus cases)
+        run: ./gradlew :fabric:runSelftest --console=plain --stacktrace
+
+      - name: Verify JAR contents and metadata
+        run: |
+          set -euo pipefail
+          JAR="fabric/build/libs/the-block-keeps-ticking-plus-26.3.jar"
+          test -f "$JAR" || { echo "::error::Expected JAR not found: $JAR"; exit 1; }
+
+          echo "JAR: $JAR"
+          unzip -l "$JAR"
+
+          echo "Checking that no sources or dev artifacts are packaged..."
+          if unzip -l "$JAR" | grep -E -- '-(sources|dev)\.jar|/dev/'; then
+            echo "::error::JAR contains sources/dev content"
+            exit 1
+          fi
+
+          echo "Checking required entries..."
+          for entry in \
+            fabric.mod.json \
+            pack.mcmeta \
+            the_block_keeps_ticking.mixins.json \
+            the_block_keeps_ticking.accesswidener \
+            META-INF/MANIFEST.MF; do
+            unzip -l "$JAR" | grep -q "$entry" || {
+              echo "::error::Missing JAR entry: $entry"; exit 1; }
+          done
+
+          echo "Checking fabric.mod.json metadata..."
+          unzip -p "$JAR" fabric.mod.json > /tmp/fabric.mod.json
+          grep -q '"id": "the-block-keeps-ticking"' /tmp/fabric.mod.json
+          grep -q '"version": "2.0.0"' /tmp/fabric.mod.json
+          grep -q '"minecraft": "~26.3"' /tmp/fabric.mod.json
+          grep -q '"java": ">=25"' /tmp/fabric.mod.json
+
+          echo "Checking pack.mcmeta..."
+          unzip -p "$JAR" pack.mcmeta > /tmp/pack.mcmeta
+          grep -q '"pack_format": 97' /tmp/pack.mcmeta
+
+          echo "Checking manifest..."
+          unzip -p "$JAR" META-INF/MANIFEST.MF > /tmp/MANIFEST.MF
+          grep -q 'Built-On-Minecraft: 26.3' /tmp/MANIFEST.MF
+          echo "JAR verification passed."
+
+      - name: Generate SHA256SUMS.txt
+        run: |
+          set -euo pipefail
+          cd fabric/build/libs
+          sha256sum the-block-keeps-ticking-plus-26.3.jar > SHA256SUMS.txt
+          echo "SHA256:"
+          cat SHA256SUMS.txt
+
+      - name: Prepare artifact directory
+        run: |
+          set -euo pipefail
+          OUT="dist/The-Block-Keeps-Ticking-Plus-MC-26.3-Fabric"
+          mkdir -p "$OUT"
+          cp fabric/build/libs/the-block-keeps-ticking-plus-26.3.jar "$OUT/"
+          cp fabric/build/libs/SHA256SUMS.txt "$OUT/"
+          cp DEBUG-GUIDE.md "$OUT/"
+          echo "Artifact contents:"
+          ls -la "$OUT"
+          test "$(find "$OUT" -maxdepth 1 -type f | wc -l)" -eq 3
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: The-Block-Keeps-Ticking-Plus-MC-26.3-Fabric
+          path: dist/The-Block-Keeps-Ticking-Plus-MC-26.3-Fabric/
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,46 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "magicjinn.theblockkeepsticking.mixin",
+  "compatibilityLevel": "JAVA_${java_version}",
+  "mixins": [
+    "AbstractFurnaceBlockEntityMixin",
+    "CropBlockMixin",
+    "StemBlockMixin",
+    "NetherWartBlockMixin",
+    "CampfireBlockEntityMixin",
+    "SaplingBlockMixin",
+    "SnifferEggBlockMixin",
+    "BrewingStandBlockEntityMixin",
+    "KelpBlockMixin",
+    "BambooSaplingBlockMixin",
+    "BambooStalkBlockMixin",
+    "CactusBlockAccessor",
+    "CactusBlockMixin",
+    "LeavesBlockMixin",
+    "SugarCaneBlockMixin",
+    "CocoaBlockMixin",
+    "AgeableMobMixin",
+    "DriedGhastBlockMixin",
+    "FarmlandBlockMixin",
+    "SweetBerryBushBlockMixin",
+    "BuddingAmethystBlockMixin",
+    "PointedDripstoneBlockMixin",
+    "SpeleothemBlockAccessor",
+    "LevelTicksMixin",
+    "LevelTicksAccessor",
+    "ServerLevelBlockEventMixin",
+    "ServerLevelAccessor",
+    "ServerLevelAddEntityMixin",
+    "LevelSetBlockMixin",
+    "HopperBlockEntityMixin"
+  ],
+  "client": [],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
