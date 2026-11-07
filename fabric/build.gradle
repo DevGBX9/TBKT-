@@ -26,7 +26,7 @@ repositories {
 
 dependencies {
     minecraft("com.mojang:minecraft:${minecraft_version}")
-    mappings(loom.officialMojangMappings())
+    mappings(channel: 'official', version: minecraft_version)
     modImplementation("net.fabricmc:fabric-loader:${fabric_loader_version}")
     modImplementation("net.fabricmc.fabric-api:fabric-api:${fabric_version}")
     modCompileOnly("dev.isxander:yet-another-config-lib:${yacl_version_fabric}")
