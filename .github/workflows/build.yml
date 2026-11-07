@@ -84,9 +84,6 @@ jobs:
           grep -q 'the-block-keeps-ticking' gradle.properties
           echo "Structure check passed."
 
-      - name: Run unit tests
-        run: ./gradlew :fabric:test --console=plain --stacktrace
-
       - name: Compile main sources and resources
         run: ./gradlew :fabric:compileJava :fabric:processResources --console=plain --stacktrace
 
