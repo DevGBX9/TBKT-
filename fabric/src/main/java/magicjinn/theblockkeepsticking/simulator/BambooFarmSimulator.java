@@ -674,8 +674,10 @@ public final class BambooFarmSimulator {
             if (container == null)
                 return;
 
-            var pending = container.getAll()
-                    .filter(scheduled -> scheduled.type() instanceof Block).toList();
+            final List<ScheduledTick<?>> pending = container.getAll()
+                    .filter(scheduled -> scheduled.type() instanceof Block)
+                    .<ScheduledTick<?>>map(tick -> tick)
+                    .toList();
             container.removeIf(scheduled -> scheduled.type() instanceof Block);
             for (ScheduledTick<?> scheduled : pending) {
                 if (!(scheduled.type() instanceof Block block)) {
